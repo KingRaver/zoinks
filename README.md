@@ -29,8 +29,8 @@ chromedriver
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/eth-btc-correlation-bot.git
-cd eth-btc-correlation-bot
+git clone https://github.com/KingRaver/zoinks.git
+cd zoinks
 ```
 
 2. Install required packages:
