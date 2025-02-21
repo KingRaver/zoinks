@@ -73,7 +73,7 @@ The agent is highly configurable through the `Config` class. Key parameters incl
 
 Start the agent with:
 ```bash
-python3 eth_btc_correlation_bot.py
+python3 src/bot.py
 ```
 
 The agent will:
