@@ -9,7 +9,7 @@ An advanced cryptocurrency market analysis bot that monitors cryptocurrency pric
 
 ## 🌟 Features
 
-- **Real-time Market Monitoring**: Continuously tracks ETH and BTC price movements using CoinGecko API
+- **Real-time Market Monitoring**: Continuously tracks cryptocurrency price movements using CoinGecko API
 - **AI-Powered Analysis**: Leverages Claude 3.5 Sonnet for sophisticated market analysis
 - **Automated Twitter Updates**: Posts market insights automatically with duplicate detection
 - **Smart Duplicate Prevention**: Advanced algorithms to prevent redundant analyses
