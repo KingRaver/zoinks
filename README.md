@@ -1,6 +1,6 @@
 # Market Correlation Agent 📊
 
-An advanced cryptocurrency market analysis bot that monitors ETH and BTC price movements, provides real-time correlation analysis, and automatically posts insights to Twitter using Claude AI.
+An advanced cryptocurrency market analysis bot that monitors cryptocurrency price movements, provides real-time correlation analysis, and automatically posts insights to Twitter using Claude AI.
 
 ![Python](https://img.shields.io/badge/Python-3.8%2B-blue)
 ![Selenium](https://img.shields.io/badge/Selenium-4.16.0-green)
