@@ -130,4 +130,6 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## ⚠️ Disclaimer
 
-This agent is for educational purposes only. Cryptocurrency trading carries significant risks. Always do your own research and never trade based solely on automated analysis.
+This agent is for educational purposes only. 
+Cryptocurrency trading carries significant risks. 
+Always do your own research and never trade based solely on automated analysis.
