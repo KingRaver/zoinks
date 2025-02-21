@@ -48,7 +48,7 @@ CHROME_DRIVER_PATH=/path/to/chromedriver
 
 ## 🔧 Configuration
 
-The bot is highly configurable through the `Config` class. Key parameters include:
+The agent is highly configurable through the `Config` class. Key parameters include:
 
 - Market Analysis Parameters:
   ```python
@@ -69,22 +69,22 @@ The bot is highly configurable through the `Config` class. Key parameters includ
   }
   ```
 
-## 🏃‍♂️ Running the Bot
+## 🏃‍♂️ Running the Agent
 
-Start the bot with:
+Start the agent with:
 ```bash
 python3 eth_btc_correlation_bot.py
 ```
 
-The bot will:
+The agent will:
 1. Initialize and authenticate with Twitter
-2. Begin monitoring ETH/BTC market data
+2. Begin monitoring cryptocurrency market data
 3. Generate AI-powered market analysis
 4. Post insights to Twitter at configured intervals
 
 ## 📊 Analysis Methodology
 
-The bot employs a sophisticated analysis approach:
+The agent employs a sophisticated analysis approach:
 
 1. **Market Data Collection**
    - Real-time price data from CoinGecko
@@ -104,7 +104,7 @@ The bot employs a sophisticated analysis approach:
 
 ## 🛠 Error Handling
 
-The bot includes robust error handling:
+The agent includes robust error handling:
 - Automatic retries for API failures
 - Graceful degradation
 - Comprehensive logging
@@ -130,4 +130,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## ⚠️ Disclaimer
 
-This bot is for educational purposes only. Cryptocurrency trading carries significant risks. Always do your own research and never trade based solely on automated analysis.
+This agent is for educational purposes only. Cryptocurrency trading carries significant risks. Always do your own research and never trade based solely on automated analysis.
