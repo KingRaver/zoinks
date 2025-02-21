@@ -2,7 +2,7 @@
 
 ## Table of Contents
 - [Market Analysis Parameters](#market-analysis-parameters)
-- [Twitter Agent Settings](#twitter-bot-settings)
+- [Twitter Agent Settings](#twitter-agent-settings)
 - [API Configuration](#api-configuration)
 - [Logging Configuration](#logging-configuration)
 - [Browser Configuration](#browser-configuration)
