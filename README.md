@@ -1,6 +1,6 @@
 # Market Correlation Agent 📊
 
-An advanced cryptocurrency market analysis agent that monitors cryptocurrency price movements, provides real-time correlation analysis, and automatically posts insights to Twitter using Claude AI.
+An advanced cryptocurrency market analysis agent that monitors cryptocurrency price movements, provides real-time correlation analysis, and automatically posts insights to Twitter using Claude and CoinGecko integrations.
 
 ![Python](https://img.shields.io/badge/Python-3.8%2B-blue)
 ![Selenium](https://img.shields.io/badge/Selenium-4.16.0-green)
