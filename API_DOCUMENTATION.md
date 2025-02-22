@@ -1,6 +1,6 @@
 # API Documentation
 
-This document provides comprehensive information about the APIs used in the ETH/BTC Correlation Bot, including endpoint details, authentication methods, request/response formats, error handling, and best practices.
+This document provides comprehensive information about the APIs used in the Market Correlation Agent, including endpoint details, authentication methods, request/response formats, error handling, and best practices.
 
 ## Table of Contents
 - [CoinGecko API Integration](#coingecko-api-integration)
@@ -15,7 +15,7 @@ This document provides comprehensive information about the APIs used in the ETH/
 ## CoinGecko API Integration
 
 ### API Overview
-The bot uses CoinGecko's public API to retrieve cryptocurrency market data for Bitcoin (BTC) and Ethereum (ETH). This data includes current prices, trading volumes, and price changes over various time periods.
+The bot uses CoinGecko's public API to retrieve cryptocurrency market data. This data includes current prices, trading volumes, and price changes over various time periods.
 
 ### Base URL
 ```
@@ -54,7 +54,7 @@ def check_coingecko_status(self) -> bool:
 ```
 
 #### 2. Markets Endpoint
-Used to retrieve price data for BTC and ETH.
+Used to retrieve price data.
 
 **Request:**
 ```
@@ -322,7 +322,7 @@ Keep the analysis technical but concise, emphasizing key shifts in market dynami
 ## Twitter API Integration
 
 ### API Overview
-The bot does not use the Twitter API directly, but instead uses Selenium WebDriver for browser automation to interact with Twitter's web interface. This approach avoids the need for Twitter Developer API credentials but comes with its own challenges in terms of reliability and maintenance.
+The agent does not use the Twitter API directly, but instead uses Selenium WebDriver for browser automation to interact with Twitter's web interface. This approach avoids the need for Twitter Developer API credentials but comes with its own challenges in terms of reliability and maintenance.
 
 ### Browser Automation
 The bot uses Selenium to:
