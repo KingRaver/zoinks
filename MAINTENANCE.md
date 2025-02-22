@@ -1,436 +1,551 @@
-# Testing Documentation
+# Maintenance Guide
 
 ## Table of Contents
-- [Test Strategy](#test-strategy)
-- [Test Types](#test-types)
-- [Test Coverage](#test-coverage)
-- [Test Environment](#test-environment)
-- [Testing Tools](#testing-tools)
-- [Continuous Integration](#continuous-integration)
-- [Performance Testing](#performance-testing)
-- [Test Cases](#test-cases)
+- [Regular Maintenance Tasks](#regular-maintenance-tasks)
+- [Log Management](#log-management)
+- [Session Management](#session-management)
+- [Database Maintenance](#database-maintenance)
+- [Dependency Updates](#dependency-updates)
+- [Troubleshooting](#troubleshooting)
+- [Monitoring Alerts](#monitoring-alerts)
+- [Backup Procedures](#backup-procedures)
 
-## Test Strategy
+## Regular Maintenance Tasks
 
-### Goals
-- Ensure reliable operation of the Market Correlation Agent
-- Verify data accuracy for cryptocurrency analysis
-- Validate proper functionality of Twitter integration
-- Guarantee secure handling of API keys and credentials
-- Confirm resilience to network and service disruptions
-
-### Approach
-```mermaid
-graph TD
-    A[Unit Tests] --> B[Integration Tests]
-    B --> C[System Tests]
-    C --> D[Performance Tests]
-    D --> E[Security Tests]
-    E --> F[Release]
-```
-
-### Test Pyramid
-- **Unit Tests**: 60% (focus on core logic)
-- **Integration Tests**: 25% (API interactions)
-- **System Tests**: 10% (end-to-end workflows)
-- **Performance Tests**: 5% (bottlenecks and scalability)
-
-## Test Types
-
-### Unit Tests
-```python
-# Example unit test for price analysis
-def test_extract_price_data():
-    """Test the extraction of price data from a tweet"""
-    # Setup
-    tweet = "ETH/BTC Market Analysis - 2023-10-25 12:34:56\n\nBTC: $63,421.75 (2.34%)\nETH: $3,451.89 (1.23%)"
-    
-    # Execute
-    data = bot._extract_price_data(tweet)
-    
-    # Assert
-    assert data is not None
-    assert data['btc'] == 63421.75
-    assert data['eth'] == 3451.89
-    assert data['timestamp'].day == 25
-    assert data['timestamp'].month == 10
-    assert data['timestamp'].year == 2023
-```
-
-### Integration Tests
-```python
-# Example integration test for CoinGecko API
-@patch('requests.Session.get')
-def test_get_crypto_data(mock_get):
-    """Test fetching crypto data from CoinGecko"""
-    # Mock response
-    mock_response = MagicMock()
-    mock_response.json.return_value = [
-        {'symbol': 'btc', 'current_price': 63421.75, 'price_change_percentage_24h': 2.34},
-        {'symbol': 'eth', 'current_price': 3451.89, 'price_change_percentage_24h': 1.23}
-    ]
-    mock_response.raise_for_status.return_value = None
-    mock_get.return_value = mock_response
-    
-    # Execute
-    result = bot._get_crypto_data()
-    
-    # Assert
-    assert result is not None
-    assert 'BTC' in result
-    assert 'ETH' in result
-    assert result['BTC']['current_price'] == 63421.75
-    assert result['ETH']['current_price'] == 3451.89
-```
-
-### System Tests
-```python
-def test_full_analysis_cycle():
-    """Test the complete analysis cycle end-to-end"""
-    # Setup
-    setup_test_environment()
-    
-    # Execute
-    bot._run_correlation_cycle()
-    
-    # Assert
-    # Check if analysis was generated
-    assert os.path.exists('last_analysis.json')
-    
-    # Check if tweet was composed
-    with open('last_analysis.json', 'r') as f:
-        analysis = json.load(f)
-        assert 'tweet_text' in analysis
-        assert len(analysis['tweet_text']) > 0
-        assert 'BTC: $' in analysis['tweet_text']
-        assert 'ETH: $' in analysis['tweet_text']
-    
-    # Check logs for successful completion
-    with open('bot.log', 'r') as f:
-        log_content = f.read()
-        assert 'Successfully generated market analysis' in log_content
-```
-
-### Smoke Tests
-```python
-def test_smoke():
-    """Basic smoke test to verify critical functionality"""
-    # Test API connectivity
-    assert bot._get_crypto_data() is not None
-    
-    # Test Claude API connectivity
-    mock_data = {'BTC': {'current_price': 60000}, 'ETH': {'current_price': 3000}}
-    assert bot._analyze_market_sentiment(mock_data) is not None
-    
-    # Test Twitter connectivity
-    assert bot._verify_login() is True
-```
-
-## Test Coverage
-
-### Core Components
-| Component | Coverage Target | Current Coverage |
-|-----------|----------------|-----------------|
-| Market Analysis | 95% | 92% |
-| Twitter Integration | 90% | 88% |
-| API Handling | 90% | 91% |
-| Error Recovery | 85% | 82% |
-| Configuration | 80% | 85% |
-
-### Critical Paths
-- Price data extraction
-- Market sentiment analysis
-- Twitter posting workflow
-- Duplicate detection algorithm
-- Error recovery mechanisms
-
-### Edge Cases
-```python
-def test_edge_cases():
-    """Test edge cases and boundary conditions"""
-    
-    # Test empty API response
-    with patch('requests.Session.get') as mock_get:
-        mock_response = MagicMock()
-        mock_response.json.return_value = []
-        mock_get.return_value = mock_response
-        assert bot._get_crypto_data() is None
-    
-    # Test malformed tweet
-    malformed_tweet = "Invalid tweet format"
-    assert bot._extract_price_data(malformed_tweet) == {}
-    
-    # Test tweet exceeding length
-    long_analysis = "A" * 1000  # Very long analysis
-    tweet = bot._format_tweet_analysis(long_analysis, {'current_price': 60000}, {'current_price': 3000})
-    assert len(tweet) <= 280  # Twitter character limit
-```
-
-## Test Environment
-
-### Development Environment
-```docker
-# docker-compose.yml for test environment
-version: '3'
-services:
-  test-bot:
-    build: .
-    environment:
-      - ENVIRONMENT=test
-      - TWITTER_USERNAME=test_user
-      - TWITTER_PASSWORD=test_pass
-      - CLAUDE_API_KEY=test_key
-    volumes:
-      - ./tests:/app/tests
-      - ./test-results:/app/test-results
-```
-
-### CI Environment
-```yaml
-# test-ci.yml
-environment:
-  PYTHONPATH: $PYTHONPATH:$CI_PROJECT_DIR
-  TWITTER_USERNAME: $CI_TWITTER_USERNAME
-  TWITTER_PASSWORD: $CI_TWITTER_PASSWORD
-  CLAUDE_API_KEY: $CI_CLAUDE_API_KEY
-  TEST_MODE: true
-  NO_BROWSER: true  # Use headless mode
-```
-
-### Mock Services
-```python
-# Mock Twitter service
-class MockTwitter:
-    def __init__(self):
-        self.tweets = []
-    
-    def post_tweet(self, text):
-        self.tweets.append({
-            'text': text,
-            'timestamp': datetime.now()
-        })
-        return True
-    
-    def get_last_tweets(self, count=10):
-        return self.tweets[:count]
-
-# Usage
-@patch.object(bot, 'twitter', MockTwitter())
-def test_twitter_integration():
-    # Test code using mocked Twitter
-    pass
-```
-
-## Testing Tools
-
-### Core Testing Libraries
-- **pytest**: Main testing framework
-- **unittest.mock**: Mocking framework
-- **requests-mock**: Mock HTTP requests
-- **pytest-cov**: Coverage reporting
-- **selenium-wire**: Advanced Selenium testing
-
-### Test Execution
+### Daily Tasks
 ```bash
 #!/bin/bash
-# run_tests.sh
+# daily_maintenance.sh
 
-# Run unit tests
-python -m pytest tests/unit/ -v
+# Check service status
+systemctl status eth-btc-bot
 
-# Run integration tests
-python -m pytest tests/integration/ -v
+# Verify logs for errors
+grep -i "error\|exception\|fail" /var/log/eth-btc-bot/bot.log
 
-# Run system tests
-python -m pytest tests/system/ -v
+# Check disk space
+df -h /var/log/eth-btc-bot/
 
-# Run all tests with coverage
-python -m pytest --cov=eth_btc_bot tests/
+# Verify API connectivity
+curl -s -o /dev/null -w "%{http_code}" https://api.coingecko.com/api/v3/ping
 ```
 
-### Linting and Static Analysis
+### Weekly Tasks
 ```bash
-# Static analysis
-flake8 eth_btc_bot/ --count --select=E9,F63,F7,F82 --show-source --statistics
+#!/bin/bash
+# weekly_maintenance.sh
 
-# Security scanning
-bandit -r eth_btc_bot/ -c bandit.yaml
+# Rotate logs
+logrotate -f /etc/logrotate.d/eth-btc-bot
 
-# Type checking
-mypy eth_btc_bot/
+# Clear browser cache and sessions
+rm -rf /home/bot-user/.cache/selenium/
+rm -rf /tmp/chrome_profile_*
+
+# Check for dependency updates
+pip list --outdated
+
+# Verify backups
+ls -la /var/backups/eth-btc-bot/
 ```
 
-## Continuous Integration
+### Monthly Tasks
+```bash
+#!/bin/bash
+# monthly_maintenance.sh
 
-### Pipeline Configuration
-```yaml
-# .github/workflows/tests.yml
-name: Tests
+# Update dependencies
+pip install -r requirements.txt --upgrade
 
-on:
-  push:
-    branches: [ main, develop ]
-  pull_request:
-    branches: [ main ]
+# Rotate credentials if needed
+source scripts/rotate_credentials.sh
 
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    
-    steps:
-    - uses: actions/checkout@v2
-    
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: '3.9'
-    
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install -r requirements-dev.txt
-    
-    - name: Lint with flake8
-      run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-    
-    - name: Test with pytest
-      run: |
-        python -m pytest --cov=eth_btc_bot tests/
-        
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v2
+# Run full system test
+python -m tests.system_test
+
+# Clean up old backups
+find /var/backups/eth-btc-bot/ -type f -mtime +90 -delete
 ```
 
-### Test Report Example
-```
-============================= test session starts ==============================
-platform linux -- Python 3.9.7, pytest-7.0.0, pluggy-1.0.0
-rootdir: /app
-collected 84 items
+### Quarterly Tasks
+```bash
+#!/bin/bash
+# quarterly_maintenance.sh
 
-tests/unit/test_market_analysis.py ............                          [ 14%]
-tests/unit/test_twitter_integration.py .........                         [ 25%]
-tests/unit/test_api_handlers.py .................                        [ 45%]
-tests/integration/test_coingecko.py ......                               [ 52%]
-tests/integration/test_claude.py .....                                   [ 58%]
-tests/integration/test_twitter.py ........                               [ 67%]
-tests/system/test_full_cycle.py ....                                     [ 72%]
-tests/system/test_error_recovery.py ......                               [ 79%]
-tests/performance/test_api_performance.py .....                          [ 85%]
-tests/security/test_credential_handling.py .........                     [ 95%]
-tests/security/test_data_protection.py ....                              [100%]
+# Security audit
+source scripts/security_audit.sh
 
----------- coverage: platform linux, python 3.9.7-final-0 -----------
-Name                      Stmts   Miss  Cover   Missing
--------------------------------------------------------
-eth_btc_bot/__init__.py       4      0   100%
-eth_btc_bot/config.py        89      7    92%   45-52
-eth_btc_bot/bot.py          248     20    92%   301-320
-eth_btc_bot/logger.py        42      2    95%   62-63
--------------------------------------------------------
-TOTAL                       383     29    92%
+# Configuration review
+python scripts/validate_config.py
+
+# Performance analysis
+python scripts/performance_analysis.py
+
+# API usage review
+python scripts/api_usage_report.py
 ```
 
-## Performance Testing
+## Log Management
 
-### Load Testing
+### Log Rotation Configuration
+```
+# /etc/logrotate.d/eth-btc-bot
+/var/log/eth-btc-bot/*.log {
+    daily
+    missingok
+    rotate 14
+    compress
+    delaycompress
+    notifempty
+    create 0640 bot-user bot-user
+    sharedscripts
+    postrotate
+        systemctl reload eth-btc-bot
+    endscript
+}
+```
+
+### Log Analysis
+```bash
+# Find most common errors
+grep -i "error" /var/log/eth-btc-bot/bot.log | sort | uniq -c | sort -nr | head -10
+
+# Check API call frequency
+grep "API call" /var/log/eth-btc-bot/bot.log | wc -l
+
+# Analyze tweet posting pattern
+grep "Tweet posted" /var/log/eth-btc-bot/bot.log | awk '{print $1, $2}' | sort | uniq -c
+```
+
+### Log Cleanup
+```bash
+# Clean logs older than 90 days
+find /var/log/eth-btc-bot/ -name "*.log.*" -type f -mtime +90 -delete
+
+# Compress older logs
+find /var/log/eth-btc-bot/ -name "*.log.*" -type f -mtime +7 -exec gzip {} \;
+```
+
+## Session Management
+
+### Browser Session Cleanup
 ```python
-def test_api_throughput():
-    """Test API throughput under load"""
-    # Setup
-    num_requests = 100
-    start_time = time.time()
+def cleanup_browser_sessions():
+    """Clear stale browser sessions and profiles"""
+    # Find Chrome processes running for more than 2 hours
+    old_processes = subprocess.check_output(
+        "ps -eo pid,etimes,command | grep chrome | awk '$2 > 7200 {print $1}'",
+        shell=True
+    ).decode().strip().split('\n')
     
-    # Execute
-    successful = 0
-    failed = 0
+    # Terminate old processes
+    for pid in old_processes:
+        if pid:
+            subprocess.run(['kill', '-9', pid])
     
-    for _ in range(num_requests):
+    # Remove temporary Chrome profiles
+    temp_profiles = glob.glob('/tmp/chrome_profile_*')
+    for profile in temp_profiles:
+        if os.path.getmtime(profile) < (time.time() - 86400):  # Older than 1 day
+            shutil.rmtree(profile, ignore_errors=True)
+```
+
+### API Session Management
+```python
+def manage_api_sessions():
+    """Reset API sessions regularly to prevent stale connections"""
+    global session
+    
+    # Close existing session
+    if session:
         try:
-            data = bot._get_crypto_data()
-            if data:
-                successful += 1
-            else:
-                failed += 1
-        except Exception:
-            failed += 1
+            session.close()
+        except:
+            pass
     
-    end_time = time.time()
-    duration = end_time - start_time
+    # Create new session with updated settings
+    session = requests.Session()
+    session.timeout = (30, 90)  # (connect, read) timeouts
     
-    # Assert
-    assert successful > 0
-    print(f"API Throughput: {successful/duration:.2f} requests/second")
-    print(f"Success rate: {successful/num_requests*100:.2f}%")
+    # Add retry mechanism
+    retry = Retry(
+        total=5,
+        backoff_factor=0.5,
+        status_forcelist=[429, 500, 502, 503, 504]
+    )
+    adapter = HTTPAdapter(max_retries=retry)
+    session.mount('http://', adapter)
+    session.mount('https://', adapter)
+    
+    return session
 ```
 
-### Memory Profiling
+## Database Maintenance
+
+### Data Pruning
 ```python
-@profile
-def test_memory_usage():
-    """Test memory usage during analysis cycle"""
-    # Setup
-    bot = ETHBTCCorrelationBot()
+def prune_database():
+    """Remove old data to maintain database performance"""
+    with db_connection() as conn:
+        cursor = conn.cursor()
+        
+        # Remove analysis data older than 60 days
+        cursor.execute("""
+            DELETE FROM analysis_results 
+            WHERE timestamp < DATE_SUB(NOW(), INTERVAL 60 DAY)
+        """)
+        
+        # Remove detailed logs older than 30 days
+        cursor.execute("""
+            DELETE FROM api_call_logs
+            WHERE timestamp < DATE_SUB(NOW(), INTERVAL 30 DAY)
+        """)
+        
+        # Optimize tables after large deletions
+        cursor.execute("OPTIMIZE TABLE analysis_results")
+        cursor.execute("OPTIMIZE TABLE api_call_logs")
+        
+        conn.commit()
+```
+
+### Index Maintenance
+```python
+def maintain_indexes():
+    """Rebuild and analyze database indexes"""
+    with db_connection() as conn:
+        cursor = conn.cursor()
+        
+        # Analyze table statistics
+        cursor.execute("ANALYZE TABLE analysis_results")
+        cursor.execute("ANALYZE TABLE api_call_logs")
+        cursor.execute("ANALYZE TABLE tweet_history")
+        
+        # Check for fragmented indexes
+        cursor.execute("""
+            SELECT table_name, index_name
+            FROM information_schema.statistics
+            WHERE table_schema = DATABASE()
+        """)
+        
+        # Rebuild fragmented indexes
+        for table, index in cursor.fetchall():
+            cursor.execute(f"ALTER TABLE {table} DROP INDEX {index}")
+            cursor.execute(f"ALTER TABLE {table} ADD INDEX {index} ({index})")
+```
+
+## Dependency Updates
+
+### Checking for Updates
+```bash
+# Generate list of outdated packages
+pip list --outdated > outdated_packages.txt
+
+# Check for security advisories
+safety check -r requirements.txt
+```
+
+### Update Process
+```bash
+# Best practice update process
+# 1. Create backup of current environment
+pip freeze > requirements.backup.txt
+
+# 2. Update packages
+pip install -U packagename
+
+# 3. Test functionality after updates
+python -m tests.integration_test
+
+# 4. If issues, rollback
+# pip uninstall -y packagename
+# pip install -r requirements.backup.txt
+```
+
+### Critical Dependencies
+
+| Package | Purpose | Update Frequency | Risk Level |
+|---------|---------|------------------|------------|
+| Selenium | Browser Automation | Monthly | Medium |
+| Requests | API Communication | Monthly | Low |
+| Python-dotenv | Environment Config | Quarterly | Low |
+| Cryptography | Security | Immediately | High |
+
+## Troubleshooting
+
+### Common Issues
+
+#### Twitter Login Failures
+```python
+def troubleshoot_twitter_login():
+    """Diagnose and fix Twitter login issues"""
+    # Check for captcha presence
+    try:
+        captcha = browser.driver.find_element_by_id('recaptcha')
+        if captcha.is_displayed():
+            logger.error("CAPTCHA detected, manual intervention required")
+            send_alert("CAPTCHA detected during Twitter login")
+            return False
+    except:
+        pass
     
-    # Execute
-    for _ in range(10):
-        bot._run_correlation_cycle()
-        time.sleep(1)
+    # Check for account lockout
+    try:
+        account_locked = browser.driver.find_elements_by_xpath(
+            "//*[contains(text(), 'locked') or contains(text(), 'unusual activity')]"
+        )
+        if account_locked:
+            logger.error("Account may be locked - security verification needed")
+            send_alert("Twitter account locked, verification needed")
+            return False
+    except:
+        pass
+    
+    # Clear cookies and retry
+    browser.driver.delete_all_cookies()
+    browser.driver.refresh()
+    
+    return retry_login()
 ```
 
-### Benchmark Results
+#### API Rate Limiting
+```python
+def handle_rate_limiting(service_name, retry_after=60):
+    """Handle rate limit errors for different services"""
+    logger.warning(f"{service_name} rate limit reached, pausing for {retry_after} seconds")
+    
+    # Record rate limit incident
+    metrics.increment(f"{service_name}_rate_limits")
+    
+    # Update dynamic backoff timer
+    global rate_limit_backoff
+    rate_limit_backoff[service_name] = min(
+        rate_limit_backoff.get(service_name, retry_after) * 1.5,
+        3600  # Max 1 hour backoff
+    )
+    
+    # Pause operations
+    time.sleep(retry_after)
+    
+    # Reduce frequency temporarily
+    adjust_polling_frequency(service_name, increase_interval=True)
 ```
-=========================== Performance ===========================
-API Latency:
-  CoinGecko: 245ms (avg), 612ms (p95)
-  Claude API: 890ms (avg), 1250ms (p95)
-  Twitter: 320ms (avg), 780ms (p95)
 
-Memory Usage:
-  Base: 58MB
-  Peak during analysis: 112MB
-  After GC: 65MB
-
-CPU Utilization:
-  Idle: 1.2%
-  During analysis: 12.5%
-  During posting: 8.7%
+#### Browser Crashes
+```python
+def recover_from_browser_crash():
+    """Handle and recover from browser crashes"""
+    logger.error("Browser crash detected")
+    
+    # Kill any zombie processes
+    os.system("pkill -f chrome")
+    os.system("pkill -f chromedriver")
+    
+    # Clean temporary files
+    for pattern in ["/.org.chromium.Chromium*", "/.com.google.Chrome*"]:
+        os.system(f"rm -rf /tmp{pattern}")
+    
+    # Reinitialize browser with clean profile
+    browser.initialize_driver(fresh_profile=True)
+    
+    # Verify successful recovery
+    try:
+        browser.driver.get("https://www.google.com")
+        if browser.driver.title:
+            logger.info("Browser successfully recovered")
+            return True
+    except:
+        logger.critical("Failed to recover browser")
+        return False
 ```
 
-## Test Cases
+### Diagnostic Procedures
+```bash
+# System diagnostic script
+#!/bin/bash
 
-### Market Analysis Tests
-1. **Verify price extraction from different tweet formats**
-2. **Test correlation calculation accuracy**
-3. **Validate volatility threshold behavior**
-4. **Check market sentiment analysis quality**
-5. **Test handling of missing market data**
+echo "=== System Resources ==="
+free -h
+df -h
+top -b -n 1 | head -20
 
-### Twitter Integration Tests
-1. **Verify successful Twitter login process**
-2. **Test tweet composition and length constraints**
-3. **Validate duplicate post detection algorithm**
-4. **Test error handling on tweet posting failures**
-5. **Verify session management and recovery**
+echo "=== Network Connectivity ==="
+ping -c 3 api.coingecko.com
+ping -c 3 twitter.com
+ping -c 3 api.anthropic.com
 
-### API Handling Tests
-1. **Test successful API data retrieval**
-2. **Validate retry mechanisms on API failures**
-3. **Test rate limit handling and backoff strategy**
-4. **Verify timeout handling**
-5. **Test response parsing and error detection**
+echo "=== Service Status ==="
+systemctl status eth-btc-bot
 
-### Error Recovery Tests
-1. **Test recovery from browser crashes**
-2. **Validate behavior on network disconnections**
-3. **Test handling of invalid API responses**
-4. **Verify recovery from authentication failures**
-5. **Test system resilience during API outages**
+echo "=== Recent Errors ==="
+tail -50 /var/log/eth-btc-bot/bot.log | grep -i "error\|exception\|fail"
 
-### Security Tests
-1. **Verify secure storage of credentials**
-2. **Test protection against API key exposure**
-3. **Validate session security measures**
-4. **Test handling of suspicious activities**
-5. **Verify secure communication channels**
+echo "=== Process List ==="
+ps aux | grep -E "python|chrome|selenium"
+```
+
+## Monitoring Alerts
+
+### Alert Thresholds
+```json
+{
+  "alerts": {
+    "high_error_rate": {
+      "threshold": 10,
+      "period": "10m",
+      "description": "High error rate detected",
+      "action": "notify_admin"
+    },
+    "api_failure": {
+      "threshold": 5,
+      "period": "5m",
+      "description": "Consecutive API failures",
+      "action": "restart_service"
+    },
+    "disk_space": {
+      "threshold": 90,
+      "period": "1h",
+      "description": "Disk space usage above 90%",
+      "action": "notify_admin"
+    },
+    "memory_usage": {
+      "threshold": 85,
+      "period": "5m",
+      "description": "Memory usage above 85%",
+      "action": "restart_service"
+    }
+  }
+}
+```
+
+### Alert Response Actions
+```python
+def handle_alert(alert_type, alert_data):
+    """Respond to system alerts"""
+    logger.warning(f"Alert triggered: {alert_type}")
+    
+    actions = {
+        "notify_admin": send_admin_notification,
+        "restart_service": restart_service,
+        "clean_disk_space": clean_disk_space,
+        "reduce_polling": reduce_polling_frequency
+    }
+    
+    # Get configured action
+    action = ALERT_CONFIG["alerts"][alert_type]["action"]
+    
+    # Execute response
+    if action in actions:
+        actions[action](alert_type, alert_data)
+    else:
+        logger.error(f"Unknown alert action: {action}")
+```
+
+## Backup Procedures
+
+### Configuration Backup
+```bash
+#!/bin/bash
+# backup_config.sh
+
+# Set backup directory
+BACKUP_DIR="/var/backups/eth-btc-bot"
+mkdir -p "$BACKUP_DIR"
+
+# Create timestamp
+TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+
+# Backup all configuration files
+tar -czf "$BACKUP_DIR/config_$TIMESTAMP.tar.gz" /opt/eth-btc-bot/config/
+
+# Backup environment variables
+cp /opt/eth-btc-bot/.env "$BACKUP_DIR/.env_$TIMESTAMP"
+
+# Encrypt sensitive backups
+gpg --encrypt --recipient admin@example.com "$BACKUP_DIR/.env_$TIMESTAMP"
+rm "$BACKUP_DIR/.env_$TIMESTAMP"
+
+# Remove backups older than 90 days
+find "$BACKUP_DIR" -type f -mtime +90 -delete
+```
+
+### Data Backup
+```python
+def backup_database():
+    """Backup application database"""
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    backup_file = f"/var/backups/eth-btc-bot/db_backup_{timestamp}.sql.gz"
+    
+    try:
+        # Create backup directory if it doesn't exist
+        os.makedirs(os.path.dirname(backup_file), exist_ok=True)
+        
+        # Run database dump and compress
+        subprocess.run([
+            "mysqldump",
+            "-u", db_config["user"],
+            f"-p{db_config['password']}",
+            db_config["database"],
+            "--single-transaction",
+            "--quick",
+            f"--result-file={backup_file}"
+        ], check=True)
+        
+        # Compress the backup
+        subprocess.run(["gzip", "-f", backup_file], check=True)
+        
+        logger.info(f"Database backup created: {backup_file}.gz")
+        return f"{backup_file}.gz"
+    except Exception as e:
+        logger.error(f"Database backup failed: {str(e)}")
+        return None
+```
+
+### Restore Procedures
+```bash
+#!/bin/bash
+# restore_backup.sh
+
+if [ $# -ne 1 ]; then
+    echo "Usage: $0 <backup_file>"
+    exit 1
+fi
+
+BACKUP_FILE=$1
+
+# Check if file exists
+if [ ! -f "$BACKUP_FILE" ]; then
+    echo "Backup file not found: $BACKUP_FILE"
+    exit 1
+fi
+
+# Stop service
+systemctl stop eth-btc-bot
+
+# Restore configuration
+if [[ "$BACKUP_FILE" == *"config"* ]]; then
+    # Backup current config first
+    cp -r /opt/eth-btc-bot/config/ /opt/eth-btc-bot/config.bak/
+    
+    # Extract backup
+    tar -xzf "$BACKUP_FILE" -C /
+    
+    echo "Configuration restored from $BACKUP_FILE"
+fi
+
+# Restore database
+if [[ "$BACKUP_FILE" == *"db_backup"* ]]; then
+    # Uncompress if needed
+    if [[ "$BACKUP_FILE" == *.gz ]]; then
+        gunzip -c "$BACKUP_FILE" > "${BACKUP_FILE%.gz}"
+        BACKUP_FILE="${BACKUP_FILE%.gz}"
+    fi
+    
+    # Import backup
+    mysql -u "$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" < "$BACKUP_FILE"
+    
+    echo "Database restored from $BACKUP_FILE"
+fi
+
+# Restart service
+systemctl start eth-btc-bot
+```
