@@ -1,6 +1,6 @@
 # API Documentation
 
-This document provides comprehensive information about the APIs used in the Market Correlation Agent, including endpoint details, authentication methods, request/response formats, error handling, and best practices.
+This document provides comprehensive information about the APIs used in the ETH/BTC Correlation Bot, including endpoint details, authentication methods, request/response formats, error handling, and best practices.
 
 ## Table of Contents
 - [CoinGecko API Integration](#coingecko-api-integration)
@@ -15,7 +15,7 @@ This document provides comprehensive information about the APIs used in the Mark
 ## CoinGecko API Integration
 
 ### API Overview
-The bot uses CoinGecko's public API to retrieve cryptocurrency market data. This data includes current prices, trading volumes, and price changes over various time periods.
+The bot uses CoinGecko's public API to retrieve cryptocurrency market data for Bitcoin (BTC) and Ethereum (ETH). This data includes current prices, trading volumes, and price changes over various time periods.
 
 ### Base URL
 ```
@@ -888,4 +888,78 @@ def mock_coingecko_response():
         }
     ]
 
-# Using
+# Using the mock in tests
+@patch('requests.Session.get')
+def test_get_crypto_data(mock_get):
+    """Test fetching crypto data with mock response"""
+    # Setup mock
+    mock_response = MagicMock()
+    mock_response.json.return_value = mock_coingecko_response()
+    mock_response.status_code = 200
+    mock_get.return_value = mock_response
+    
+    # Execute
+    result = bot._get_crypto_data()
+    
+    # Assert
+    assert result is not None
+    assert 'BTC' in result
+    assert 'ETH' in result
+    assert result['BTC']['current_price'] == 63421.75
+
+### API Testing Tools
+```python
+# API response time tracking
+def test_api_response_times():
+    """Test API response times"""
+    endpoints = {
+        'coingecko': f"{config.COINGECKO_BASE_URL}/coins/markets?vs_currency=usd&ids=bitcoin",
+        'claude': "https://api.anthropic.com/v1/messages"  # Example only, would need auth
+    }
+    
+    results = {}
+    
+    for name, url in endpoints.items():
+        times = []
+        for _ in range(5):
+            start = time.time()
+            try:
+                if name == 'claude':
+                    # Would need proper auth and body for real test
+                    continue
+                else:
+                    requests.get(url, timeout=10)
+            except Exception as e:
+                logger.error(f"Error testing {name}: {str(e)}")
+            end = time.time()
+            times.append(end - start)
+        
+        if times:
+            results[name] = {
+                'avg': sum(times) / len(times),
+                'min': min(times),
+                'max': max(times)
+            }
+    
+    return results
+```
+
+### Development Environment
+```python
+# Development configuration
+DEV_CONFIG = {
+    'API_KEYS': {
+        'coingecko': None,  # Not needed for free tier
+        'claude': 'YOUR_DEV_KEY_HERE'
+    },
+    'ENDPOINTS': {
+        'coingecko': 'https://api.coingecko.com/api/v3',
+        'claude': 'https://api.anthropic.com/v1'
+    },
+    'MOCK_RESPONSES': True,  # Use mock responses in development
+    'RATE_LIMITS': {
+        'coingecko': {'calls': 30, 'period': 60},
+        'claude': {'calls': 10, 'period': 60}
+    }
+}
+```
